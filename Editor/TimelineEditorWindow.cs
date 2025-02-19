@@ -3,6 +3,7 @@ using Editor;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
+using UnityEngine.VFX;
 
 public class TimelineEditorWindow : EditorWindow
 {
@@ -32,7 +33,8 @@ public class TimelineEditorWindow : EditorWindow
     private bool isDragging;
     private Vector2 dragStartPos;
 
-    private List<AnimationLineClass> animationLineList = new List<AnimationLineClass>(); 
+    private readonly List<AnimationLineClass> animationLineList = new List<AnimationLineClass>(); 
+    private readonly List<EffectLineClass> effectLineList = new List<EffectLineClass>(); 
     
     [MenuItem("Window/SkillTimeLine")]
     public static void ShowWindow()
@@ -180,6 +182,10 @@ public class TimelineEditorWindow : EditorWindow
         {
             animationLine.Update();
         }
+        foreach (var effectLine in effectLineList)
+        {
+            effectLine.Update();
+        }
     }
     
     // 创建拖拽区域
@@ -208,6 +214,7 @@ public class TimelineEditorWindow : EditorWindow
         dragArea.RegisterCallback<DragPerformEvent>(OnDragPerformEvent);
     }
     
+    // 拖拽相关操作
     private void OnDragPerformEvent(DragPerformEvent evt)
     {
         // 接受拖拽并处理
@@ -229,15 +236,17 @@ public class TimelineEditorWindow : EditorWindow
                     }
                     case GameObject gameObject:
                     {
-                        _gameObjectText.text = $"{gameObject.transform.name}";
-                        _animator = gameObject.GetComponent<Animator>();
-                        _selectedObject = gameObject;
-                        Debug.Log(gameObject.transform.name);
-                        break;
-                    }
-                    case Effector2D effect:
-                    {
-                        CreateEffectLine(effect);
+                        if (CheckIsEffect(gameObject))
+                        {
+                            CreateEffectLine(gameObject);
+                        }
+                        else
+                        {
+                            _gameObjectText.text = $"{gameObject.transform.name}";
+                            _animator = gameObject.GetComponent<Animator>();
+                            _selectedObject = PrefabUtility.InstantiatePrefab(gameObject) as GameObject;;
+                            Debug.Log(gameObject.transform.name);
+                        }
                         break;
                     }
                 }
@@ -245,6 +254,16 @@ public class TimelineEditorWindow : EditorWindow
             Debug.Log(draggedResources);
         }
         evt.StopPropagation();
+    }
+    
+    private static bool CheckIsEffect(GameObject gameObject)
+    {
+        var path = AssetDatabase.GetAssetPath(gameObject);
+        var prefabInstance = PrefabUtility.LoadPrefabContents(path);
+        var hasParticle = prefabInstance.GetComponentInChildren<ParticleSystem>(true) != null;
+        var hasVFX = prefabInstance.GetComponentInChildren<VisualEffect>(true) != null;
+        PrefabUtility.UnloadPrefabContents(prefabInstance);
+        return hasVFX || hasParticle;
     }
 
     // 创建时间轴节点
@@ -484,6 +503,7 @@ public class TimelineEditorWindow : EditorWindow
         if (!_isPlaying) return;
         PlayTime();
         PlayAnimation();
+        PlayEffect();
     }
     
     // 游标与时间显示更新
@@ -510,6 +530,7 @@ public class TimelineEditorWindow : EditorWindow
         _timeDisplay.text = $"Time: {_currentTime:F2}s";
     }
     
+    // 播放动作
     private void PlayAnimation()
     {
         if (_animator == null) return;
@@ -520,6 +541,15 @@ public class TimelineEditorWindow : EditorWindow
             {
                 AnimationMode.SampleAnimationClip(_selectedObject, animationLine.AnimationClip, _currentTime - float.Parse(animationLine.StartTime.text));
             }
+        }
+    }
+    
+    // 播放特效
+    private void PlayEffect()
+    {
+        foreach (var effectLine in effectLineList)
+        {
+            effectLine.Play(_currentTime);
         }
     }
 
@@ -539,6 +569,7 @@ public class TimelineEditorWindow : EditorWindow
         AnimationMode.StartAnimationMode();
         UpdateCursor();
         PlayAnimation();
+        PlayEffect();
     }
 
     // 游标移动到下一帧
@@ -548,6 +579,7 @@ public class TimelineEditorWindow : EditorWindow
         AnimationMode.StartAnimationMode();
         UpdateCursor();
         PlayAnimation();
+        PlayEffect();
     }
 
     // 色码转色号
@@ -582,9 +614,13 @@ public class TimelineEditorWindow : EditorWindow
     }
     
     // effect 特效播放模块
-    private static void CreateEffectLine(Effector2D effect)
+    private void CreateEffectLine(GameObject effectObj)
     {
-        Debug.Log(effect.name);
+        var effectLine = new EffectLineClass();
+        var isCreateSuccess = effectLine.CreateEffectLine(root, effectObj, effectLineList.Count, _selectedObject);
+        if (isCreateSuccess)
+        {
+            effectLineList.Add(effectLine);
+        }
     }
-    
 }
