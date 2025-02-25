@@ -9,16 +9,18 @@ namespace Editor
     public class EffectLineClass:TimeLineBaseClass
     {
         private int LineCount { get; set; }
-        public float EffectLength { get; private set; }
+        private float EffectLength { get; set; }
         private float CommonWidth { get; set; }
         private bool IsDragging { get; set; }
         private VisualElement CurElement { get; set; }
         private GameObject EffectClip { get; set; }
         private ParticleSystem ParticleSystem { get; set; }
-        public VisualEffect VisualEffect { get; private set; }
+        private VisualEffect VisualEffect { get; set; }
         private Label EndTime { get; set; }
-        public Label StartTime { get; private set; }
+        private Label StartTime { get; set; }
         private GameObject EffectObj { get; set; }
+
+        private delegate void OnMouseDowmDel(); 
         
         public bool CreateEffectLine(VisualElement root, GameObject effectObj, int lineCount, GameObject parentObj)
         {
@@ -69,6 +71,8 @@ namespace Editor
             }
             ParticleSystem.Simulate(EffectLength / 2, true);
             ParticleSystem.Play();
+            AnimationMode.StartAnimationMode();
+            SceneView.RepaintAll();
         }
         
         private void CreateEffectShowEle(VisualElement parentElement, GameObject effectObj)
@@ -210,8 +214,8 @@ namespace Editor
             parentElement.Add(CurElement);
             // CreateTickMarkOutLine(CurElement, 0);
             // CreateTickMarkOutLine(CurElement, CommonWidth - 5);
-            parentElement.RegisterCallback<MouseDownEvent>(OnMouseDown);
-            parentElement.RegisterCallback<MouseUpEvent>(OnMouseUp);
+            parentElement.RegisterCallback<MouseDownEvent>((evt) => OnMouseDown(evt, CurElement));
+            parentElement.RegisterCallback<MouseUpEvent>((evt) => OnMouseUp(evt, CurElement));
             parentElement.RegisterCallback<MouseMoveEvent>((evt) => OnMouseMove(evt, CurElement));
         }
         
@@ -242,14 +246,16 @@ namespace Editor
         }
         
         // 鼠标监听事件
-        private void OnMouseDown(MouseDownEvent mouseDownEvent)
+        private void OnMouseDown(MouseDownEvent mouseDownEvent, VisualElement element)
         {
             IsDragging = true;
+            //element.CaptureMouse();
         }
     
-        private void OnMouseUp(MouseUpEvent evt)
+        private void OnMouseUp(MouseUpEvent evt, VisualElement element)
         {
             IsDragging = false;
+            //element.ReleaseMouse();
         }
 
         private void OnMouseMove(MouseMoveEvent evt, VisualElement element)
@@ -269,18 +275,13 @@ namespace Editor
         public void Play(float currentTime)
         {
             var realTime = currentTime - float.Parse(StartTime.text);
-            Debug.Log("当前的时间：" + realTime + " " + EffectLength);
             if (realTime > 0 && realTime < EffectLength)
             {
-                Debug.Log("播放特效：" + realTime);
                 ParticleSystem.Simulate(realTime, true);
                 ParticleSystem.Play();
                 SceneView.RepaintAll();
-            }
-            else
-            {
-                //ParticleSystem.Stop();
-                //Object.DestroyImmediate(EffectObj);
+                EditorApplication.QueuePlayerLoopUpdate();
+                EditorUtility.SetDirty(ParticleSystem);
             }
         }
 

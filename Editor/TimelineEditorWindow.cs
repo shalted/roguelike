@@ -67,7 +67,7 @@ public class TimelineEditorWindow : EditorWindow
         CreateTimeLineTimeText(timeLineLongitudinalRoot);
         EditorApplication.update += OnEditorUpdate;
     }
-    
+
     // 创建时间轴节点
     private VisualElement CreateRoot()
     {
@@ -480,6 +480,10 @@ public class TimelineEditorWindow : EditorWindow
     {
         Debug.Log("Window is being disabled or closed.");
         _isPlaying = false;
+        if (_selectedObject != null)
+        {
+            Destroy(_selectedObject);
+        }
     }
     
     // 播放与暂停状态值
@@ -492,6 +496,7 @@ public class TimelineEditorWindow : EditorWindow
         }
         else
         {
+            Debug.Log("关闭动作播放：");
             AnimationMode.StopAnimationMode();
         }
         _playPauseButton.text = _isPlaying ? "Pause" : "Play";

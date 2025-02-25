@@ -1,9 +1,17 @@
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace Editor
 {
-    public class TimeLineBaseClass
+    public class TimeLineBaseClass:VisualElement
     {
+        private float _value;
+        private Vector2 _dragStartPos;
+        private float _dragStartValue;
+        private bool _isDragging;
+        
+        public event System.Action<float> OnValueChanged;
+
         protected static Color HexToColor(string hex)
         {
             // 移除开头的 #
