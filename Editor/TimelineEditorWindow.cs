@@ -32,17 +32,25 @@ public class TimelineEditorWindow : EditorWindow
     private GameObject _selectedObject;
     private bool isDragging;
     private Vector2 dragStartPos;
+    public static Event Evt;
 
     private readonly List<AnimationLineClass> animationLineList = new List<AnimationLineClass>(); 
-    private readonly List<EffectLineClass> effectLineList = new List<EffectLineClass>(); 
-    
+    private readonly List<EffectLineClass> effectLineList = new List<EffectLineClass>();
+
     [MenuItem("Window/SkillTimeLine")]
-    public static void ShowWindow()
+    private static void ShowWindow()
     {
+        Evt = Event.current;
         TimelineEditorWindow wnd = GetWindow<TimelineEditorWindow>();
         wnd.titleContent = new GUIContent("Timeline Editor");
         wnd.minSize = new Vector2(1200, 800); // 设置固定的最小大小
         wnd.maxSize = new Vector2(1200, 800); // 设置固定的最大大小
+        wnd.Show();
+    }
+    
+    private void OnGUI()
+    {
+        Evt = Event.current;
     }
 
     public void CreateGUI()
@@ -209,7 +217,6 @@ public class TimelineEditorWindow : EditorWindow
         {
             // 当鼠标悬停在拖拽区域时，改变拖拽指示符
             DragAndDrop.visualMode = DragAndDropVisualMode.Link;
-            evt.StopPropagation();
         });
         dragArea.RegisterCallback<DragPerformEvent>(OnDragPerformEvent);
     }
@@ -244,8 +251,7 @@ public class TimelineEditorWindow : EditorWindow
                         {
                             _gameObjectText.text = $"{gameObject.transform.name}";
                             _animator = gameObject.GetComponent<Animator>();
-                            _selectedObject = PrefabUtility.InstantiatePrefab(gameObject) as GameObject;;
-                            Debug.Log(gameObject.transform.name);
+                            _selectedObject = PrefabUtility.InstantiatePrefab(gameObject) as GameObject;
                         }
                         break;
                     }
@@ -253,7 +259,6 @@ public class TimelineEditorWindow : EditorWindow
             }
             Debug.Log(draggedResources);
         }
-        evt.StopPropagation();
     }
     
     private static bool CheckIsEffect(GameObject gameObject)
@@ -480,10 +485,6 @@ public class TimelineEditorWindow : EditorWindow
     {
         Debug.Log("Window is being disabled or closed.");
         _isPlaying = false;
-        if (_selectedObject != null)
-        {
-            Destroy(_selectedObject);
-        }
     }
     
     // 播放与暂停状态值

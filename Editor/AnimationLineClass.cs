@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 using System.Globalization;
+using UnityEditor;
 
 namespace Editor
 {
@@ -13,6 +14,9 @@ namespace Editor
         private VisualElement CurElement { get; set; }
         public AnimationClip AnimationClip { get; private set; }
         public Label StartTime { get; private set; }
+        private VisualElement _curMoveElement;
+        private Vector2 dragOffset;
+        private float oriX;
         
         public void CreateAnimationLine(VisualElement root, AnimationClip animation, int lineCount)
         {
@@ -173,9 +177,7 @@ namespace Editor
             parentElement.Add(CurElement);
             // CreateTickMarkOutLine(CurElement, 0);
             // CreateTickMarkOutLine(CurElement, CommonWidth - 5);
-            parentElement.RegisterCallback<MouseDownEvent>(OnMouseDown);
-            parentElement.RegisterCallback<MouseUpEvent>(OnMouseUp);
-            parentElement.RegisterCallback<MouseMoveEvent>((evt) => OnMouseMove(evt, CurElement));
+            parentElement.RegisterCallback<MouseDownEvent>((evt) => OnMouseDown(evt, CurElement));
         }
         
         private void CreateTickMarkOutLine(VisualElement parentElement, float marginLeft)
@@ -205,23 +207,32 @@ namespace Editor
         }
         
         // 鼠标监听事件
-        private void OnMouseDown(MouseDownEvent mouseDownEvent)
+        private void OnMouseDown(MouseDownEvent mouseDownEvent, VisualElement element)
         {
+            Debug.Log("鼠标点击按下");
             IsDragging = true;
-        }
-    
-        private void OnMouseUp(MouseUpEvent evt)
-        {
-            IsDragging = false;
+            dragOffset = TimelineEditorWindow.Evt.mousePosition;
+            _curMoveElement = element;
+            EditorApplication.update += OnDragUpdate;
         }
 
-        private void OnMouseMove(MouseMoveEvent evt, VisualElement element)
+        private void OnDragUpdate()
         {
-            if (!IsDragging) return;
-            var distance = evt.mousePosition.x - TimelineEditorWindow.TimelineTitleWidth;
-            var oriPos = Mathf.Clamp(distance - CommonWidth / 2, 0, TimelineEditorWindow.TimelineWidth - CommonWidth);
-            Debug.Log(oriPos);
-            element.style.marginLeft = Mathf.Clamp(distance - CommonWidth / 2, 0, TimelineEditorWindow.TimelineWidth - CommonWidth);
+            var evt = TimelineEditorWindow.Evt;
+            if (evt is { type: EventType.MouseUp })
+            {
+                IsDragging = false;
+                EditorApplication.update -= OnDragUpdate;
+                return;
+            }
+
+            if (evt is not { type: EventType.MouseDrag } || !IsDragging) return;
+            var mousePos = evt.mousePosition;
+            var moveX = mousePos.x - dragOffset.x;
+            dragOffset = evt.mousePosition;
+            var oriPos = Mathf.Clamp(oriX + moveX, 0, TimelineEditorWindow.TimelineWidth - CommonWidth);
+            oriX = oriPos;
+            _curMoveElement.style.marginLeft = oriPos;
             var oneSecWidth = TimelineEditorWindow.TimelineWidth / TimelineEditorWindow.TotalTimeInSeconds;
             StartTime.text = (Mathf.Round(oriPos / oneSecWidth * 100) / 100f).ToString(CultureInfo.CurrentCulture);
             EndTime.text = (Mathf.Round((oriPos + CommonWidth) / oneSecWidth * 100) / 100).ToString(CultureInfo.CurrentCulture);
