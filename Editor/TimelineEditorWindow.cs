@@ -36,6 +36,8 @@ public class TimelineEditorWindow : EditorWindow
 
     private readonly List<AnimationLineClass> animationLineList = new List<AnimationLineClass>(); 
     private readonly List<EffectLineClass> effectLineList = new List<EffectLineClass>();
+    private readonly List<EventLineClass> eventLineList = new List<EventLineClass>(); 
+    private readonly List<StateLineClass> stateLineList = new List<StateLineClass>(); 
 
     [MenuItem("Window/SkillTimeLine")]
     private static void ShowWindow()
@@ -60,6 +62,8 @@ public class TimelineEditorWindow : EditorWindow
         CreateSelectGameObject(parameterInputBox);
         CreateTimesInputTextField(parameterInputBox);
         CreateTimesRefreshBtn(parameterInputBox);
+        CreateEventBtn(parameterInputBox);
+        CreateStateBtn(parameterInputBox);
         CreateDropArea(parameterInputBox);
         var timeLineRoot = CreateTimeLine(root);
         var timeButtonRoot = CreateTimeBtnEle(timeLineRoot);
@@ -194,6 +198,40 @@ public class TimelineEditorWindow : EditorWindow
         {
             effectLine.Update();
         }
+    }
+
+    private void CreateEventBtn(VisualElement parentElement)
+    {
+        var tempButton = new Button();
+        tempButton.clicked += OnclickCreateEvent;
+        var temp = new Label($"AddEvent");
+        tempButton.Add(temp);
+        parentElement.Add(tempButton);
+    }
+    
+    // 按钮点击回调
+    private void OnclickCreateEvent()
+    {
+        var eventLine = new EventLineClass();
+        eventLine.CreateEventLine(root);
+        eventLineList.Add(eventLine);
+    }
+    
+    private void CreateStateBtn(VisualElement parentElement)
+    {
+        var tempButton = new Button();
+        tempButton.clicked += OnclickCreateState;
+        var temp = new Label($"AddState");
+        tempButton.Add(temp);
+        parentElement.Add(tempButton);
+    }
+    
+    // 按钮点击回调
+    private void OnclickCreateState()
+    {
+        var stateLine = new StateLineClass();
+        stateLine.CreateStateLine(root);
+        stateLineList.Add(stateLine);
     }
     
     // 创建拖拽区域
@@ -510,6 +548,8 @@ public class TimelineEditorWindow : EditorWindow
         PlayTime();
         PlayAnimation();
         PlayEffect();
+        PlayEvent();
+        PlayState();
     }
     
     // 游标与时间显示更新
@@ -556,6 +596,24 @@ public class TimelineEditorWindow : EditorWindow
         foreach (var effectLine in effectLineList)
         {
             effectLine.Play(_currentTime);
+        }
+    }
+    
+    // 播放特效
+    private void PlayEvent()
+    {
+        foreach (var eventLine in eventLineList)
+        {
+            eventLine.Play(_currentTime);
+        }
+    }
+    
+    // 播放特效
+    private void PlayState()
+    {
+        foreach (var stateLine in stateLineList)
+        {
+            stateLine.Play(_currentTime);
         }
     }
 
